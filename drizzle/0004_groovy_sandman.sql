@@ -1,0 +1,1 @@
+CREATE INDEX "users_token_idx" ON "users" USING btree ("token");
