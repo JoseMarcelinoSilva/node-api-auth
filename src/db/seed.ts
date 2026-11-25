@@ -1,50 +1,69 @@
-import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
 import { db } from "./index.js";
 import { notes, users } from "./schema.js";
 
-const sampleNotes = [
-    {
+const seedUsers = [
+  {
+    email: "demo@example.com",
+    password: "password123",
+    notes: [
+      {
         title: "Primeira nota",
         content: "Este é o conteúdo da primeira nota de exemplo.",
-    },
-    {
+      },
+      {
         title: "Lista de compras",
         content: "Leite, ovos, pão e café.",
-    },
-    {
-        title: "Ideias",
-        content: "Criar uma API simples de notas com Node e TypeScript.",
-    },
+      },
+    ],
+  },
+  {
+    email: "other@example.com",
+    password: "password123",
+    notes: [
+      {
+        title: "Nota do outro usuário",
+        content: "Esta nota não deve aparecer para o usuário demo.",
+      },
+    ],
+  },
 ];
 
-const seedUser = {
-    email: "seed@example.com",
-    password: "seed",
-};
-
 async function seed() {
-    try {
-        const [existingUser] = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, seedUser.email));
+  try {
+    await db.delete(notes);
+    await db.delete(users);
 
-        const user =
-            existingUser ??
-            (await db.insert(users).values(seedUser).returning())[0];
+    for (const seedUser of seedUsers) {
+      const hashedPassword = await bcrypt.hash(seedUser.password, 10);
 
-        await db.insert(notes).values(
-            sampleNotes.map((note) => ({
-                ...note,
-                idUser: user.id,
-            })),
-        );
-        console.log(`Seeded ${sampleNotes.length} notes.`);
-        process.exit(0);
-    } catch (error) {
-        console.error("Seed failed:", error);
-        process.exit(1);
+      const [user] = await db
+        .insert(users)
+        .values({
+          email: seedUser.email,
+          password: hashedPassword,
+        })
+        .returning();
+
+      await db.insert(notes).values(
+        seedUser.notes.map((note) => ({
+          ...note,
+          idUser: user.id,
+        })),
+      );
     }
+
+    console.log("Seed completed.");
+    console.log("Users:");
+    for (const seedUser of seedUsers) {
+      console.log(`  ${seedUser.email} / ${seedUser.password}`);
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error("Seed failed:", error);
+    process.exit(1);
+  }
 }
 
 seed();
