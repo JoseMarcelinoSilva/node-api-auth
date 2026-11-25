@@ -1,16 +1,13 @@
 import { z } from "zod";
 
-const emailField = z.string().email().toLowerCase();
-const passwordField = z.string().min(4);
-
 export const registerSchema = z.object({
-  email: emailField,
-  password: passwordField,
+  email: z.string().email(),
+  password: z.string().min(6),
 });
 
 export const loginSchema = z.object({
-  email: emailField,
-  password: passwordField,
+  email: z.string().email(),
+  password: z.string().min(1),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
